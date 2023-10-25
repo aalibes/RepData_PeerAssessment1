@@ -9,11 +9,6 @@ output:
 <!-- ======================================== -->
 
 
-```r
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-
 ## Loading and preprocessing the data
 
 ```r
@@ -40,7 +35,6 @@ summary(activity)
 ## What is mean total number of steps taken per day?
 
 ```r
-library(magrittr)
 activityDay <- activity[,.(stepsDay=sum(steps, na.rm=T)),by=date] 
 meanDay <- as.integer(activityDay[,mean(stepsDay,na.rm = T)])
 medianDay <- as.integer(activityDay[,median(stepsDay,na.rm = T)])
@@ -72,6 +66,8 @@ The interval with a highest average number steps is 835.
 
 ## Imputing missing values
 
+We impute missing step values by using the mean value for the given interval accross al days.
+
 
 ```r
 narows <- nrow(activity) - sum(complete.cases(activity))
@@ -79,7 +75,6 @@ activity.fix <- copy(activity)
 activity.fix$steps <- as.double(activity.fix$steps)
 impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
 activity.fix[,steps:=impute.mean(steps),by=interval]
-#activityInterval.fix <- activity.fix[,.(stepsInterval=mean(steps,na.rm=T)),by=interval]
 
 activityDay.fix <- activity.fix[,.(stepsDay=sum(steps, na.rm=T)),by=date] 
 
@@ -91,7 +86,22 @@ hist(activityDay.fix$stepsDay,xlab = "Steps per Day",
 
 ![](PA1_template_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
-The mean number of steps per day (with imputed NAs) is 10766 and the median 10766
+There are 2304 records with missing values. If we impute them, the mean number of steps per day is then 10766 and the median 10766
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```r
+library(lubridate,quietly = T,warn.conflicts = F)
+activity.fix[,daytype:="weekday"]
+activity.fix[wday(activity.fix$date, week_start = 1) %in% 6:7, daytype:="weekend"]
+activity.fix[,daytype:=as.factor(daytype)]
+
+activityInterval.fix <- activity.fix[,.(stepsInterval=mean(steps,na.rm=T)),by=.(daytype,interval)]
+library(lattice)
+xyplot(stepsInterval~interval|daytype,data=activityInterval.fix,type="l",
+       layout=c(1,2), ylab = "Steps per interval", xlab="Interval")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
